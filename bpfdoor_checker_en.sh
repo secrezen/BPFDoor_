@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -96,15 +96,28 @@ require_root() {
 ensure_tool() {
     local cmd="$1"
     local label="$2"
+    local local_path="${SCRIPT_DIR}/${cmd}"
+
+    if [[ -x "$local_path" ]]; then
+        TOOL_STATUS["$cmd"]=1
+        if [[ ":$PATH:" != *":${SCRIPT_DIR}:"* ]]; then
+            PATH="${SCRIPT_DIR}:$PATH"
+            export PATH
+        fi
+        log_info "Required tool available: ${cmd} (using script directory)"
+        return
+    fi
+
     if command -v "$cmd" >/dev/null 2>&1; then
         TOOL_STATUS["$cmd"]=1
-        log_info "Required tool available: ${cmd} (present)"
+        log_info "Required tool available: ${cmd} (found in PATH)"
     else
         TOOL_STATUS["$cmd"]=0
         MISSING_TOOLS+=("${label:-$cmd}")
         log_warn "Required tool missing: ${cmd} (e.g., ${label})"
     fi
 }
+
 
 list_regex_from_array() {
     local -n arr_ref=$1
@@ -511,3 +524,4 @@ main() {
 }
 
 main "$@"
+
